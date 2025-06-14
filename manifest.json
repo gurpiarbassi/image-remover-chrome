@@ -1,0 +1,33 @@
+
+{
+  "manifest_version": 3,
+  "name": "Custom Image Remover",
+  "version": "1.0",
+  "description": "Removes images from domains you specify.",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "camera-x-icon-16x16.png",
+      "48": "camera-x-icon-48x48.png",
+      "128": "camera-x-icon-128x128.png"
+    }
+  },
+  "icons": {
+    "16": "camera-x-icon-16x16.png",
+    "48": "camera-x-icon-48x48.png",
+    "128": "camera-x-icon-128x128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+
+}
