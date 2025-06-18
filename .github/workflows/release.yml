@@ -82,9 +82,7 @@ jobs:
             camera-x-icon-48x48.png \
             camera-x-icon-128x128.png \
             content.js \
-            package.json \
             manifest.json \
-            package-lock.json \
             popup.html \
             popup.js
           echo "zip_name=$ZIP_NAME" >> $GITHUB_ENV
