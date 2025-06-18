@@ -111,7 +111,6 @@ This project uses [pre-commit](https://pre-commit.com/) to automatically lint an
 > **Note:** If you do not add one of these labels, the release workflow will fail and notify you.
 
 #### What the Release Workflow Does
-- Bumps the version in `manifest.json` and `package.json` according to the label.
-- Commits and pushes the version bump.
+- Bumps the version in `manifest.json` and `package.json` according to the label, **only in the build artifacts** (not committed to the repository).
 - Creates a zip file containing only the extension files needed for release.
 - Publishes a GitHub release with the zip file attached.
