@@ -31,7 +31,7 @@ jobs:
 
       - name: Get latest commit labels
         id: labels
-        uses: actions-ecosystem/action-get-commit-labels@v1.2.0
+        uses: actions-ecosystem/action-get-commit-labels@v1.1.0
         with:
           commit_sha: ${{ github.sha }}
 
