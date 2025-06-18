@@ -1,0 +1,50 @@
+{
+  "name": "custom-image-remover",
+  "version": "1.0.0",
+  "description": "Chrome extension to remove images from specified domains",
+  "main": "background.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:unit-only": "jest --testPathPattern=unit --passWithNoTests",
+    "build": "echo 'No build step required for Chrome extension'",
+    "lint": "eslint *.js",
+    "lint:fix": "eslint *.js --fix"
+  },
+  "keywords": ["chrome-extension", "image-removal", "privacy"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "puppeteer": "^21.5.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^16.2.0"
+  },
+  "overrides": {
+    "glob": "^10.3.10",
+    "abab": "^2.0.6",
+    "domexception": "^4.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "collectCoverageFrom": [
+      "*.js",
+      "!tests/**",
+      "!node_modules/**"
+    ],
+    "coverageReporters": ["text", "lcov", "html"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "testTimeout": 30000,
+    "verbose": true,
+    "forceExit": true,
+    "detectOpenHandles": true
+  }
+} 
