@@ -5,13 +5,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -29,18 +30,24 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Get latest commit labels
-        id: labels
-        uses: actions-ecosystem/action-get-commit-labels@v1.1.0
-        with:
-          commit_sha: ${{ github.sha }}
+      - name: Fetch PR number for commit
+        id: pr
+        run: |
+          PR_NUMBER=$(gh pr list --state merged --search "${{ github.sha }}" --json number,mergeCommit --jq '.[] | select(.mergeCommit.oid == "${{ github.sha }}") | .number')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Fetch PR labels
+        id: pr_labels
+        run: |
+          LABELS=$(gh pr view ${{ steps.pr.outputs.pr_number }} --json labels --jq '.labels[].name' | tr '\n' ' ')
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
 
       - name: Ensure version label is present
         id: ensure_label
         run: |
-          LABELS="${{ steps.labels.outputs.labels }}"
+          LABELS="${{ steps.pr_labels.outputs.labels }}"
           if [[ "$LABELS" != *"version:major"* && "$LABELS" != *"version:minor"* && "$LABELS" != *"version:patch"* ]]; then
-            echo "❌ ERROR: You must provide one of the following labels on the commit: version:major, version:minor, version:patch"
+            echo "❌ ERROR: You must provide one of the following labels on the PR: version:major, version:minor, version:patch"
             exit 1
           fi
 
@@ -48,11 +55,11 @@ jobs:
         id: bump_type
         run: |
           TYPE=""
-          if [[ "${{ steps.labels.outputs.labels }}" == *"version:major"* ]]; then
+          if [[ "${{ steps.pr_labels.outputs.labels }}" == *"version:major"* ]]; then
             TYPE="major"
-          elif [[ "${{ steps.labels.outputs.labels }}" == *"version:minor"* ]]; then
+          elif [[ "${{ steps.pr_labels.outputs.labels }}" == *"version:minor"* ]]; then
             TYPE="minor"
-          elif [[ "${{ steps.labels.outputs.labels }}" == *"version:patch"* ]]; then
+          elif [[ "${{ steps.pr_labels.outputs.labels }}" == *"version:patch"* ]]; then
             TYPE="patch"
           fi
           echo "type=$TYPE" >> $GITHUB_OUTPUT
