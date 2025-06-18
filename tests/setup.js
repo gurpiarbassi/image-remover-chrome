@@ -36,4 +36,4 @@ beforeEach(() => {
   chrome.tabs.query.mockClear();
   chrome.scripting.executeScript.mockClear();
   chrome.runtime.onInstalled.addListener.mockClear();
-}); 
+});

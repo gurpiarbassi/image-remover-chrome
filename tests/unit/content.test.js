@@ -36,7 +36,7 @@ describe('Content.js', () => {
   describe('Image removal logic', () => {
     test('should remove images matching the specified domain', () => {
       const domain = 'imagedelivery.net';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
@@ -52,7 +52,7 @@ describe('Content.js', () => {
 
       expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain'], expect.any(Function));
       expect(document.querySelectorAll).toHaveBeenCalledWith('img[src*="imagedelivery.net"]');
-      
+
       // Check that matching images were removed
       const matchingImages = mockImages.filter(img => img.src.includes('imagedelivery.net'));
       matchingImages.forEach(img => {
@@ -62,7 +62,7 @@ describe('Content.js', () => {
 
     test('should not remove images from other domains', () => {
       const domain = 'imagedelivery.net';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
@@ -100,7 +100,7 @@ describe('Content.js', () => {
 
     test('should handle no matching images', () => {
       const domain = 'nonexistent.com';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
@@ -122,7 +122,7 @@ describe('Content.js', () => {
   describe('Retry mechanism', () => {
     test('should retry image removal multiple times', () => {
       const domain = 'imagedelivery.net';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
@@ -160,13 +160,13 @@ describe('Content.js', () => {
   describe('Page load handling', () => {
     test('should start removal after page load', () => {
       const domain = 'imagedelivery.net';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
 
       const removeImages = jest.fn();
-      
+
       // Simulate window load event
       window.addEventListener('load', () => {
         removeImages();
@@ -178,4 +178,4 @@ describe('Content.js', () => {
       expect(removeImages).toHaveBeenCalled();
     });
   });
-}); 
+});

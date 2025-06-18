@@ -16,7 +16,7 @@ describe('Popup.js', () => {
     mockInput = document.getElementById('domain');
     mockSaveBtn = document.getElementById('save');
     mockRemoveBtn = document.getElementById('remove');
-    
+
     // Mock chrome APIs before requiring popup.js
     chrome.storage.local.get.mockImplementation((keys, callback) => {
       callback({});
@@ -30,7 +30,7 @@ describe('Popup.js', () => {
     chrome.scripting.executeScript.mockImplementation((options, callback) => {
       if (callback) callback();
     });
-    
+
     // Clear module cache and import fresh popup.js
     jest.resetModules();
     require('../../popup.js');
@@ -102,7 +102,7 @@ describe('Popup.js', () => {
 
     test('should show "Saved!" feedback after successful save', () => {
       mockInput.value = 'example.com';
-      
+
       chrome.storage.local.set.mockImplementation((data, callback) => {
         callback();
       });
@@ -118,7 +118,7 @@ describe('Popup.js', () => {
   describe('Manual removal functionality', () => {
     test('should execute removal script when remove button is clicked', () => {
       const domain = 'imagedelivery.net';
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({ imgDomain: domain });
       });
@@ -159,4 +159,4 @@ describe('Popup.js', () => {
       expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
     });
   });
-}); 
+});

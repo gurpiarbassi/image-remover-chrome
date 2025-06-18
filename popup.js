@@ -1,4 +1,3 @@
-
 const input = document.getElementById('domain');
 const saveBtn = document.getElementById('save');
 const removeBtn = document.getElementById('remove');
@@ -27,7 +26,6 @@ removeBtn.addEventListener('click', () => {
         target: { tabId: tabs[0].id },
         func: (domain) => {
           const matches = document.querySelectorAll(`img[src*="${domain}"]`);
-          console.log(`Removing ${matches.length} images for domain:`, domain);
           matches.forEach(img => img.remove());
         },
         args: [domain]

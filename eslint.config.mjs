@@ -1,4 +1,4 @@
-module.exports = [
+export default [
   {
     files: ['**/*.js'],
     languageOptions: {
@@ -66,6 +66,25 @@ module.exports = [
       'eol-last': ['error', 'always'],
       'no-mixed-spaces-and-tabs': 'error',
       'no-tabs': 'error'
+    }
+  },
+  // Node.js override for test files
+  {
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'module',
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        __dirname: 'readonly',
+        global: 'readonly',
+        console: 'readonly'
+      }
+    },
+    rules: {
+      'no-console': 'off',
+      'no-undef': 'off'
     }
   }
 ]; 

@@ -25,11 +25,11 @@ describe('Chrome Extension Integration Tests', () => {
 
       // Get extension ID
       const targets = await browser.targets();
-      const extensionTarget = targets.find(target => 
-        target.type() === 'background_page' && 
+      const extensionTarget = targets.find(target =>
+        target.type() === 'background_page' &&
         target.url().includes('chrome-extension://')
       );
-      
+
       if (extensionTarget) {
         extensionId = extensionTarget.url().split('/')[2];
       }
@@ -45,12 +45,12 @@ describe('Chrome Extension Integration Tests', () => {
       if (page) {
         await page.close().catch(() => {});
       }
-      
+
       if (browser) {
         // Close all pages first
         const pages = await browser.pages();
         await Promise.all(pages.map(p => p.close().catch(() => {})));
-        
+
         // Then close browser
         await browser.close();
       }
@@ -61,7 +61,7 @@ describe('Chrome Extension Integration Tests', () => {
         browser.process().kill('SIGKILL');
       }
     }
-    
+
     // Clear any remaining timers
     jest.clearAllTimers();
   });
@@ -99,7 +99,7 @@ describe('Chrome Extension Integration Tests', () => {
 
     test('should have correct manifest properties', () => {
       const manifest = require('../../manifest.json');
-      
+
       expect(manifest.manifest_version).toBe(3);
       expect(manifest.name).toBe('Custom Image Remover');
       expect(manifest.version).toBe('1.0');
@@ -115,24 +115,24 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         // Navigate to extension popup
         await page.goto(`chrome-extension://${extensionId}/popup.html`);
-        
+
         // Check for UI elements
         const domainInput = await page.$('#domain');
         const saveButton = await page.$('#save');
         const removeButton = await page.$('#remove');
-        
+
         expect(domainInput).toBeTruthy();
         expect(saveButton).toBeTruthy();
         expect(removeButton).toBeTruthy();
-        
+
         // Check button text
         const saveText = await page.$eval('#save', el => el.textContent);
         const removeText = await page.$eval('#remove', el => el.textContent);
-        
+
         expect(saveText).toBe('Save');
         expect(removeText).toBe('Remove Images');
       } catch (error) {
@@ -146,22 +146,22 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         await page.goto(`chrome-extension://${extensionId}/popup.html`);
-        
+
         // Enter domain
         await page.type('#domain', 'imagedelivery.net');
-        
+
         // Click save
         await page.click('#save');
-        
+
         // Wait for save feedback
         await page.waitForFunction(() => {
           const button = document.querySelector('#save');
           return button.textContent === 'Saved!';
         }, { timeout: 2000 });
-        
+
         // Check that button text changes back
         await page.waitForFunction(() => {
           const button = document.querySelector('#save');
@@ -180,7 +180,7 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         // First, set the domain in storage via popup
         const popupPage = await browser.newPage();
@@ -188,7 +188,7 @@ describe('Chrome Extension Integration Tests', () => {
         await popupPage.type('#domain', 'imagedelivery.net');
         await popupPage.click('#save');
         await popupPage.close();
-        
+
         // Create a test page with images
         await page.setContent(`
           <html>
@@ -200,15 +200,15 @@ describe('Chrome Extension Integration Tests', () => {
             </body>
           </html>
         `);
-        
+
         // Wait for content script to run
         await page.waitForTimeout(1000);
-        
+
         // Check that only images from imagedelivery.net were removed
-        const remainingImages = await page.$$eval('img', imgs => 
+        const remainingImages = await page.$$eval('img', imgs =>
           imgs.map(img => img.src)
         );
-        
+
         expect(remainingImages).toHaveLength(1);
         expect(remainingImages[0]).toBe('https://otherdomain.com/image3.jpg');
       } catch (error) {
@@ -222,7 +222,7 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         // Set domain in storage
         const popupPage = await browser.newPage();
@@ -230,7 +230,7 @@ describe('Chrome Extension Integration Tests', () => {
         await popupPage.type('#domain', 'imagedelivery.net');
         await popupPage.click('#save');
         await popupPage.close();
-        
+
         // Create a test page with no matching images
         await page.setContent(`
           <html>
@@ -240,13 +240,13 @@ describe('Chrome Extension Integration Tests', () => {
             </body>
           </html>
         `);
-        
+
         await page.waitForTimeout(1000);
-        
-        const remainingImages = await page.$$eval('img', imgs => 
+
+        const remainingImages = await page.$$eval('img', imgs =>
           imgs.map(img => img.src)
         );
-        
+
         expect(remainingImages).toHaveLength(2);
       } catch (error) {
         console.warn('No matching images test failed:', error.message);
@@ -261,7 +261,7 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         // Set domain in storage
         const popupPage = await browser.newPage();
@@ -269,7 +269,7 @@ describe('Chrome Extension Integration Tests', () => {
         await popupPage.type('#domain', 'imagedelivery.net');
         await popupPage.click('#save');
         await popupPage.close();
-        
+
         // Create a test page
         await page.setContent(`
           <html>
@@ -279,20 +279,20 @@ describe('Chrome Extension Integration Tests', () => {
             </body>
           </html>
         `);
-        
+
         // Open popup and click remove
         const popup = await browser.newPage();
         await popup.goto(`chrome-extension://${extensionId}/popup.html`);
         await popup.click('#remove');
         await popup.close();
-        
+
         // Wait for removal
         await page.waitForTimeout(1000);
-        
-        const remainingImages = await page.$$eval('img', imgs => 
+
+        const remainingImages = await page.$$eval('img', imgs =>
           imgs.map(img => img.src)
         );
-        
+
         expect(remainingImages).toHaveLength(1);
         expect(remainingImages[0]).toBe('https://otherdomain.com/image2.jpg');
       } catch (error) {
@@ -308,7 +308,7 @@ describe('Chrome Extension Integration Tests', () => {
         console.warn('Skipping browser-dependent test');
         return;
       }
-      
+
       try {
         // Set domain
         const popupPage = await browser.newPage();
@@ -316,14 +316,14 @@ describe('Chrome Extension Integration Tests', () => {
         await popupPage.type('#domain', 'testdomain.com');
         await popupPage.click('#save');
         await popupPage.close();
-        
+
         // Open popup again and check if domain is loaded
         const newPopupPage = await browser.newPage();
         await newPopupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-        
+
         const domainValue = await newPopupPage.$eval('#domain', el => el.value);
         expect(domainValue).toBe('testdomain.com');
-        
+
         await newPopupPage.close();
       } catch (error) {
         console.warn('Storage persistence test failed:', error.message);
@@ -331,4 +331,4 @@ describe('Chrome Extension Integration Tests', () => {
       }
     });
   });
-}); 
+});

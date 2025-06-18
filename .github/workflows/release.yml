@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Get latest commit labels
+        id: labels
+        uses: actions-ecosystem/action-get-commit-labels@v1
+        with:
+          commit_sha: ${{ github.sha }}
+
+      - name: Ensure version label is present
+        id: ensure_label
+        run: |
+          LABELS="${{ steps.labels.outputs.labels }}"
+          if [[ "$LABELS" != *"version:major"* && "$LABELS" != *"version:minor"* && "$LABELS" != *"version:patch"* ]]; then
+            echo "❌ ERROR: You must provide one of the following labels on the commit: version:major, version:minor, version:patch"
+            exit 1
+          fi
+
+      - name: Determine version bump
+        id: bump_type
+        run: |
+          TYPE=""
+          if [[ "${{ steps.labels.outputs.labels }}" == *"version:major"* ]]; then
+            TYPE="major"
+          elif [[ "${{ steps.labels.outputs.labels }}" == *"version:minor"* ]]; then
+            TYPE="minor"
+          elif [[ "${{ steps.labels.outputs.labels }}" == *"version:patch"* ]]; then
+            TYPE="patch"
+          fi
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+
+      - name: Bump version in manifest.json and package.json
+        id: bump
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          NEW_VERSION=$(npm version ${{ steps.bump_type.outputs.type }} --no-git-tag-version | sed 's/^v//')
+          jq --arg v "$NEW_VERSION" '.version = $v' manifest.json > manifest.tmp.json
+          mv manifest.tmp.json manifest.json
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json package.json package-lock.json
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git push
+
+      - name: Create zip for release
+        run: |
+          ZIP_NAME="ImageRemover-${{ steps.bump.outputs.new_version }}.zip"
+          zip -r "$ZIP_NAME" \
+            background.js \
+            camera-x-icon-16x16.png \
+            camera-x-icon-48x48.png \
+            camera-x-icon-128x128.png \
+            content.js \
+            package.json \
+            manifest.json \
+            package-lock.json \
+            popup.html \
+            popup.js
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.new_version }}
+          name: Release v${{ steps.bump.outputs.new_version }}
+          files: ${{ env.zip_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
