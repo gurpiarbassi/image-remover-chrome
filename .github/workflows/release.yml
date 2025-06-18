@@ -32,12 +32,16 @@ jobs:
 
       - name: Fetch PR number for commit
         id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_NUMBER=$(gh pr list --state merged --search "${{ github.sha }}" --json number,mergeCommit --jq '.[] | select(.mergeCommit.oid == "${{ github.sha }}") | .number')
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Fetch PR labels
         id: pr_labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           LABELS=$(gh pr view ${{ steps.pr.outputs.pr_number }} --json labels --jq '.labels[].name' | tr '\n' ' ')
           echo "labels=$LABELS" >> $GITHUB_OUTPUT
