@@ -6,13 +6,13 @@
  * Mock Chrome storage with a simple in-memory store
  */
 class MockChromeStorage {
-  constructor() {
+  constructor () {
     this.storage = new Map();
   }
 
-  get(keys, callback) {
+  get (keys, callback) {
     const result = {};
-    
+
     if (Array.isArray(keys)) {
       keys.forEach(key => {
         if (this.storage.has(key)) {
@@ -37,35 +37,35 @@ class MockChromeStorage {
         result[key] = value;
       });
     }
-    
+
     setTimeout(() => callback(result), 0);
   }
 
-  set(data, callback) {
+  set (data, callback) {
     Object.keys(data).forEach(key => {
       this.storage.set(key, data[key]);
     });
-    
+
     if (callback) {
       setTimeout(callback, 0);
     }
   }
 
-  remove(keys, callback) {
+  remove (keys, callback) {
     if (Array.isArray(keys)) {
       keys.forEach(key => this.storage.delete(key));
     } else {
       this.storage.delete(keys);
     }
-    
+
     if (callback) {
       setTimeout(callback, 0);
     }
   }
 
-  clear(callback) {
+  clear (callback) {
     this.storage.clear();
-    
+
     if (callback) {
       setTimeout(callback, 0);
     }
@@ -75,7 +75,7 @@ class MockChromeStorage {
 /**
  * Create a mock DOM environment for testing
  */
-function createMockDOM() {
+function createMockDOM () {
   const mockImages = [
     { src: 'https://imagedelivery.net/image1.jpg', remove: jest.fn() },
     { src: 'https://imagedelivery.net/image2.png', remove: jest.fn() },
@@ -109,9 +109,9 @@ function createMockDOM() {
 /**
  * Create a mock Chrome API environment
  */
-function createMockChromeAPI() {
+function createMockChromeAPI () {
   const mockStorage = new MockChromeStorage();
-  
+
   return {
     storage: {
       local: mockStorage
@@ -137,10 +137,10 @@ function createMockChromeAPI() {
 /**
  * Wait for a condition to be true
  */
-function waitFor(condition, timeout = 5000) {
+function waitFor (condition, timeout = 5000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const check = () => {
       if (condition()) {
         resolve();
@@ -150,7 +150,7 @@ function waitFor(condition, timeout = 5000) {
         setTimeout(check, 100);
       }
     };
-    
+
     check();
   });
 }
@@ -158,11 +158,11 @@ function waitFor(condition, timeout = 5000) {
 /**
  * Create a test HTML page with images
  */
-function createTestPage(images) {
-  const imageElements = images.map(img => 
+function createTestPage (images) {
+  const imageElements = images.map(img =>
     `<img src="${img.src}" alt="${img.alt || 'test'}" />`
   ).join('\n');
-  
+
   return `
     <!DOCTYPE html>
     <html>
@@ -179,7 +179,7 @@ function createTestPage(images) {
 /**
  * Validate domain format
  */
-function isValidDomain(domain) {
+function isValidDomain (domain) {
   const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   return domainRegex.test(domain);
 }
@@ -187,7 +187,7 @@ function isValidDomain(domain) {
 /**
  * Count images by domain
  */
-function countImagesByDomain(images, domain) {
+function countImagesByDomain (images, domain) {
   return images.filter(img => img.src.includes(domain)).length;
 }
 
@@ -199,4 +199,4 @@ module.exports = {
   createTestPage,
   isValidDomain,
   countImagesByDomain
-}; 
+};
