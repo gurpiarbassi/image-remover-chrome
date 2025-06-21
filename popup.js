@@ -1,8 +1,8 @@
 // DOM elements
-const websitesContainer = document.getElementById('websites-container');
-const addWebsiteBtn = document.getElementById('add-website');
-const removeImagesBtn = document.getElementById('remove-images');
-const statusDiv = document.getElementById('status');
+// const websitesContainer = document.getElementById('websites-container');
+// const addWebsiteBtn = document.getElementById('add-website');
+// const removeImagesBtn = document.getElementById('remove-images');
+// const statusDiv = document.getElementById('status');
 
 // Data structure: { websiteSettings: { "example.com": ["cdn1.com", "cdn2.com"] } }
 let websiteSettings = {};
@@ -42,6 +42,23 @@ function loadSettings () {
 
 // Save settings to storage
 function saveSettings () {
+  // Sort websites by domain
+  const sortedWebsiteEntries = Object.entries(websiteSettings)
+    .sort(([, a], [, b]) => {
+      const domainA = (a.domain || '').toLowerCase();
+      const domainB = (b.domain || '').toLowerCase();
+      return domainA.localeCompare(domainB);
+    })
+    .map(([websiteId, website]) => {
+      // Sort imageDomains for each website
+      const sortedDomains = (website.imageDomains || []).slice().sort((a, b) => a.localeCompare(b));
+      return [websiteId, { ...website, imageDomains: sortedDomains }];
+    });
+
+  // Create a new sorted object
+  const sortedWebsiteSettings = Object.fromEntries(sortedWebsiteEntries);
+  websiteSettings = sortedWebsiteSettings;
+
   chrome.storage.local.set({ websiteSettings: websiteSettings }, () => {
     showStatus('Settings saved!', 'success');
   });
@@ -49,8 +66,8 @@ function saveSettings () {
 
 // Setup event listeners
 function setupEventListeners () {
-  addWebsiteBtn.addEventListener('click', addWebsite);
-  removeImagesBtn.addEventListener('click', removeImagesOnCurrentPage);
+  document.getElementById('add-website').addEventListener('click', addWebsite);
+  document.getElementById('remove-images').addEventListener('click', removeImagesOnCurrentPage);
 }
 
 // Add a new website section
@@ -63,6 +80,14 @@ function addWebsite () {
 
   renderWebsites();
   saveSettings();
+
+  // Focus on the new website input for better UX
+  setTimeout(() => {
+    const newWebsiteInput = document.querySelector(`[data-website-id="${websiteId}"][data-field="domain"]`);
+    if (newWebsiteInput) {
+      newWebsiteInput.focus();
+    }
+  }, 100);
 }
 
 // Remove a website and all its settings
@@ -92,10 +117,28 @@ function removeImageDomain (websiteId, index) {
   saveSettings();
 }
 
+// Check if a domain already exists (excluding the current website)
+function isDuplicateDomain (domain, currentWebsiteId) {
+  if (!domain.trim()) return false;
+
+  return Object.keys(websiteSettings).some(websiteId => {
+    if (websiteId === currentWebsiteId) return false; // Skip current website
+    return websiteSettings[websiteId].domain &&
+           websiteSettings[websiteId].domain.trim().toLowerCase() === domain.trim().toLowerCase();
+  });
+}
+
+// Helper to validate a domain (e.g., google.com, my-site.org)
+function isValidDomain (domain) {
+  // Only allow domains like example.com, sub.example.co.uk, etc. No protocol, no path
+  return /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(domain.trim());
+}
+
 // Update website domain
 function updateWebsiteDomain (websiteId, domain) {
   websiteSettings[websiteId].domain = domain;
   saveSettings();
+  return true;
 }
 
 // Update image domain
@@ -106,6 +149,7 @@ function updateImageDomain (websiteId, index, domain) {
 
 // Render all websites in the UI
 function renderWebsites () {
+  const websitesContainer = document.getElementById('websites-container');
   websitesContainer.innerHTML = '';
 
   if (Object.keys(websiteSettings).length === 0) {
@@ -117,7 +161,14 @@ function renderWebsites () {
     return;
   }
 
-  Object.keys(websiteSettings).forEach(websiteId => {
+  // Sort website IDs by domain
+  const sortedWebsiteIds = Object.keys(websiteSettings).sort((idA, idB) => {
+    const domainA = (websiteSettings[idA].domain || '').toLowerCase();
+    const domainB = (websiteSettings[idB].domain || '').toLowerCase();
+    return domainA.localeCompare(domainB);
+  });
+
+  sortedWebsiteIds.forEach(websiteId => {
     const website = websiteSettings[websiteId];
     const websiteSection = createWebsiteSection(websiteId, website);
     websitesContainer.appendChild(websiteSection);
@@ -130,14 +181,15 @@ function createWebsiteSection (websiteId, website) {
   section.className = 'website-section';
 
   const domain = website.domain || '';
-  const imageDomains = website.imageDomains || [''];
+  // Sort imageDomains alphabetically for display
+  const imageDomains = (website.imageDomains || ['']).slice().sort((a, b) => a.localeCompare(b));
 
   section.innerHTML = `
         <div class="website-header">
             <input 
                 type="text" 
                 class="website-input" 
-                placeholder="Enter website domain (e.g., example.com)"
+                placeholder="e.g. google.com"
                 value="${domain}"
                 data-website-id="${websiteId}"
                 data-field="domain"
@@ -174,7 +226,26 @@ function setupWebsiteEventListeners (section, websiteId) {
   // Website domain input
   const domainInput = section.querySelector('.website-input');
   domainInput.addEventListener('input', (e) => {
-    updateWebsiteDomain(websiteId, e.target.value);
+    const domain = e.target.value;
+
+    // Visual feedback for duplicate or invalid domains
+    if (domain.trim() && isDuplicateDomain(domain, websiteId)) {
+      domainInput.classList.add('error');
+      domainInput.title = 'This domain is already configured for another website';
+      showStatus('This domain is already configured for another website', 'error');
+      return; // Don't save invalid data
+    } else if (domain.trim() && !isValidDomain(domain)) {
+      domainInput.classList.add('error');
+      domainInput.title = 'Please enter a valid domain like google.com';
+      showStatus('Please enter a valid domain like google.com', 'error');
+      return; // Don't save invalid data
+    } else {
+      domainInput.classList.remove('error');
+      domainInput.title = '';
+    }
+
+    // Only update the domain if validation passes
+    updateWebsiteDomain(websiteId, domain);
   });
 
   // Delete website button
@@ -258,6 +329,7 @@ function removeImagesOnCurrentPage () {
 
 // Show status message
 function showStatus (message, type) {
+  const statusDiv = document.getElementById('status');
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
   statusDiv.style.display = 'block';
@@ -265,4 +337,9 @@ function showStatus (message, type) {
   setTimeout(() => {
     statusDiv.style.display = 'none';
   }, 3000);
+}
+
+// Expose for tests
+if (typeof window !== 'undefined') {
+  window.isDuplicateDomain = isDuplicateDomain;
 }

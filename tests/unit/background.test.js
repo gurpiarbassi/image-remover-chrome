@@ -19,7 +19,7 @@ describe('Background.js', () => {
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({});
       });
-      chrome.storage.local.set.mockImplementation((_data) => {
+      chrome.storage.local.set.mockImplementation(() => {
         // No callback in actual implementation
       });
 
@@ -57,7 +57,7 @@ describe('Background.js', () => {
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({});
       });
-      chrome.storage.local.set.mockImplementation((_data) => {
+      chrome.storage.local.set.mockImplementation(() => {
         // No callback in actual implementation
       });
 
