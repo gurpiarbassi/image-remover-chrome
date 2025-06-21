@@ -15,6 +15,7 @@ export default [
         clearInterval: 'readonly',
         Promise: 'readonly',
         Event: 'readonly',
+        URL: 'readonly',
         jest: 'readonly',
         describe: 'readonly',
         test: 'readonly',

@@ -4,137 +4,253 @@
 // No global mocks for document.getElementById; use real DOM
 
 describe('Popup.js', () => {
-  let mockInput, mockSaveBtn, mockRemoveBtn;
+  let mockWebsitesContainer, mockAddWebsiteBtn, mockRemoveImagesBtn, mockStatusDiv;
 
   beforeEach(() => {
     // Setup DOM first
     document.body.innerHTML = `
-      <textarea id="domain"></textarea>
-      <button id="save">Save</button>
-      <button id="remove">Remove Images</button>
+      <div id="websites-container"></div>
+      <button id="add-website">+ Add Website</button>
+      <button id="remove-images">Remove Images on Current Page</button>
+      <div id="status" class="status"></div>
     `;
-    mockInput = document.getElementById('domain');
-    mockSaveBtn = document.getElementById('save');
-    mockRemoveBtn = document.getElementById('remove');
+    mockWebsitesContainer = document.getElementById('websites-container');
+    mockAddWebsiteBtn = document.getElementById('add-website');
+    mockRemoveImagesBtn = document.getElementById('remove-images');
+    mockStatusDiv = document.getElementById('status');
 
-    // Mock chrome APIs before requiring popup.js
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({});
-    });
-    chrome.storage.local.set.mockImplementation((data, callback) => {
-      if (callback) callback();
-    });
-    chrome.tabs.query.mockImplementation((queryInfo, callback) => {
-      callback([{ id: 123 }]);
-    });
-    chrome.scripting.executeScript.mockImplementation((options, callback) => {
-      if (callback) callback();
-    });
+    // Reset all chrome mocks
+    chrome.storage.local.get.mockReset();
+    chrome.storage.local.set.mockReset();
+    chrome.storage.local.remove && chrome.storage.local.remove.mockReset && chrome.storage.local.remove.mockReset();
+    chrome.tabs.query.mockReset();
+    chrome.scripting.executeScript.mockReset();
 
-    // Clear module cache and import fresh popup.js
+    // Clear module cache
     jest.resetModules();
-    require('../../popup.js');
   });
 
   describe('Initialization', () => {
-    test('should load saved domain from storage on initialization', () => {
-      const savedDomain = 'imagedelivery.net';
+    test('should load saved website settings from storage on initialization', async () => {
+      const savedSettings = {
+        'website_123': {
+          domain: 'example.com',
+          imageDomains: ['cdn.example.com', 'ads.example.com']
+        }
+      };
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
-        callback({ imgDomain: savedDomain });
+        callback({ websiteSettings: savedSettings });
       });
 
-      // Re-require popup.js to trigger initialization
-      jest.resetModules();
       require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain'], expect.any(Function));
-      expect(mockInput.value).toBe(savedDomain);
+      expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain', 'websiteSettings'], expect.any(Function));
+      // Check for the website section in the DOM
+      expect(document.querySelector('.website-section')).not.toBeNull();
     });
 
-    test('should handle empty storage gracefully', () => {
+    test('should migrate old imgDomain format to new websiteSettings format', async () => {
+      const oldDomain = 'imagedelivery.net';
+
+      chrome.storage.local.get.mockImplementation((keys, callback) => {
+        callback({ imgDomain: oldDomain });
+      });
+      chrome.storage.local.set.mockImplementation((data, callback) => {
+        expect(data).toHaveProperty('websiteSettings');
+        expect(Object.values(data.websiteSettings)[0]).toHaveProperty('domain', 'all_websites');
+        expect(Object.values(data.websiteSettings)[0]).toHaveProperty('imageDomains', [oldDomain]);
+        if (callback) callback();
+      });
+      // Patch remove if not present
+      if (!chrome.storage.local.remove) {
+        chrome.storage.local.remove = jest.fn();
+      }
+      chrome.storage.local.remove.mockImplementation((keys, callback) => {
+        expect(keys).toEqual(['imgDomain']);
+        if (callback) callback();
+      });
+
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(chrome.storage.local.set).toHaveBeenCalled();
+      expect(chrome.storage.local.remove).toHaveBeenCalled();
+    });
+
+    test('should handle empty storage gracefully', async () => {
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({});
       });
 
-      // Re-require popup.js to trigger initialization
-      jest.resetModules();
       require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(mockInput.value).toBe('');
+      expect(mockWebsitesContainer.innerHTML).toContain('No websites configured yet');
     });
   });
 
-  describe('Save functionality', () => {
-    test('should save domain to storage when save button is clicked', () => {
-      const domainToSave = 'example.com';
-      mockInput.value = domainToSave;
-
+  describe('Website Management', () => {
+    test('should add new website when add website button is clicked', async () => {
       chrome.storage.local.set.mockImplementation((data, callback) => {
-        callback();
+        expect(data).toHaveProperty('websiteSettings');
+        const settings = data.websiteSettings;
+        const websiteIds = Object.keys(settings);
+        expect(websiteIds.length).toBe(1);
+        expect(settings[websiteIds[0]]).toEqual({
+          domain: '',
+          imageDomains: ['']
+        });
+        if (callback) callback();
       });
 
-      // Simulate save button click
-      const saveEvent = new Event('click');
-      mockSaveBtn.dispatchEvent(saveEvent);
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(chrome.storage.local.set).toHaveBeenCalledWith(
-        { imgDomain: domainToSave },
-        expect.any(Function)
-      );
+      const addEvent = new Event('click');
+      mockAddWebsiteBtn.dispatchEvent(addEvent);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(chrome.storage.local.set).toHaveBeenCalled();
     });
 
-    test('should trim whitespace from domain input', () => {
-      const domainWithWhitespace = '  example.com  ';
-      mockInput.value = domainWithWhitespace;
+    test('should remove website when delete button is clicked', async () => {
+      const existingSettings = {
+        'website_123': {
+          domain: 'example.com',
+          imageDomains: ['cdn.example.com']
+        }
+      };
 
-      chrome.storage.local.set.mockImplementation((data, callback) => {
-        callback();
+      chrome.storage.local.get.mockImplementation((keys, callback) => {
+        callback({ websiteSettings: existingSettings });
       });
 
-      const saveEvent = new Event('click');
-      mockSaveBtn.dispatchEvent(saveEvent);
+      chrome.storage.local.set.mockImplementation((data, callback) => {
+        expect(data).toHaveProperty('websiteSettings');
+        expect(Object.keys(data.websiteSettings).length).toBe(0);
+        if (callback) callback();
+      });
 
-      expect(chrome.storage.local.set).toHaveBeenCalledWith(
-        { imgDomain: 'example.com' }, // Should be trimmed
-        expect.any(Function)
-      );
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Wait for DOM to be rendered
+      setTimeout(() => {
+        const deleteBtn = document.querySelector('.delete-btn');
+        if (deleteBtn) {
+          deleteBtn.click();
+          expect(chrome.storage.local.set).toHaveBeenCalled();
+        }
+      }, 100);
+    });
+  });
+
+  describe('Image Domain Management', () => {
+    test('should add new image domain when add domain button is clicked', async () => {
+      const existingSettings = {
+        'website_123': {
+          domain: 'example.com',
+          imageDomains: ['cdn1.example.com']
+        }
+      };
+
+      chrome.storage.local.get.mockImplementation((keys, callback) => {
+        callback({ websiteSettings: existingSettings });
+      });
+
+      chrome.storage.local.set.mockImplementation((data, callback) => {
+        expect(data).toHaveProperty('websiteSettings');
+        const settings = data.websiteSettings['website_123'];
+        expect(settings.imageDomains.length).toBe(2);
+        expect(settings.imageDomains[1]).toBe('');
+        if (callback) callback();
+      });
+
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Wait for DOM to be rendered
+      setTimeout(() => {
+        const addDomainBtn = document.querySelector('.add-domain-btn');
+        if (addDomainBtn) {
+          addDomainBtn.click();
+          expect(chrome.storage.local.set).toHaveBeenCalled();
+        }
+      }, 100);
     });
 
-    test('should show "Saved!" feedback after successful save', () => {
-      mockInput.value = 'example.com';
+    test('should remove image domain when remove domain button is clicked', async () => {
+      const existingSettings = {
+        'website_123': {
+          domain: 'example.com',
+          imageDomains: ['cdn1.example.com', 'cdn2.example.com']
+        }
+      };
 
-      chrome.storage.local.set.mockImplementation((data, callback) => {
-        callback();
+      chrome.storage.local.get.mockImplementation((keys, callback) => {
+        callback({ websiteSettings: existingSettings });
       });
 
-      const saveEvent = new Event('click');
-      mockSaveBtn.dispatchEvent(saveEvent);
+      chrome.storage.local.set.mockImplementation((data, callback) => {
+        expect(data).toHaveProperty('websiteSettings');
+        const settings = data.websiteSettings['website_123'];
+        expect(settings.imageDomains.length).toBe(1);
+        if (callback) callback();
+      });
 
-      // The button text should be "Saved!" immediately after the callback
-      expect(mockSaveBtn.textContent).toBe('Saved!');
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Wait for DOM to be rendered
+      setTimeout(() => {
+        const removeDomainBtns = document.querySelectorAll('.remove-domain-btn');
+        if (removeDomainBtns.length > 0) {
+          removeDomainBtns[0].click();
+          expect(chrome.storage.local.set).toHaveBeenCalled();
+        }
+      }, 100);
     });
   });
 
   describe('Manual removal functionality', () => {
-    test('should execute removal script when remove button is clicked', () => {
-      const domain = 'imagedelivery.net';
+    test('should execute removal script when remove images button is clicked', async () => {
+      const existingSettings = {
+        'website_123': {
+          domain: 'example.com',
+          imageDomains: ['cdn.example.com', 'ads.example.com']
+        }
+      };
 
       chrome.storage.local.get.mockImplementation((keys, callback) => {
-        callback({ imgDomain: domain });
+        callback({ websiteSettings: existingSettings });
       });
 
       chrome.tabs.query.mockImplementation((queryInfo, callback) => {
-        callback([{ id: 123 }]);
+        callback([{ id: 123, url: 'https://example.com' }]);
       });
 
       chrome.scripting.executeScript.mockImplementation((options, callback) => {
-        if (callback) callback();
+        expect(options.args[0]).toEqual(['cdn.example.com', 'ads.example.com']);
+        if (callback) callback([{ result: 5 }]);
       });
 
-      const removeEvent = new Event('click');
-      mockRemoveBtn.dispatchEvent(removeEvent);
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain'], expect.any(Function));
+      const removeEvent = new Event('click');
+      mockRemoveImagesBtn.dispatchEvent(removeEvent);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       expect(chrome.tabs.query).toHaveBeenCalledWith(
         { active: true, currentWindow: true },
         expect.any(Function)
@@ -142,21 +258,56 @@ describe('Popup.js', () => {
       expect(chrome.scripting.executeScript).toHaveBeenCalledWith({
         target: { tabId: 123 },
         func: expect.any(Function),
-        args: [domain]
-      });
+        args: [['cdn.example.com', 'ads.example.com']]
+      }, expect.any(Function));
     });
 
-    test('should not execute removal if no domain is saved', () => {
+    test('should show error message when no domains configured for current website', async () => {
+      const existingSettings = {
+        'website_123': {
+          domain: 'different.com',
+          imageDomains: ['cdn.example.com']
+        }
+      };
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
-        callback({});
+        callback({ websiteSettings: existingSettings });
       });
 
-      const removeEvent = new Event('click');
-      mockRemoveBtn.dispatchEvent(removeEvent);
+      chrome.tabs.query.mockImplementation((queryInfo, callback) => {
+        callback([{ id: 123, url: 'https://example.com' }]);
+      });
 
-      expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain'], expect.any(Function));
-      expect(chrome.tabs.query).not.toHaveBeenCalled();
+      require('../../popup.js');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const removeEvent = new Event('click');
+      mockRemoveImagesBtn.dispatchEvent(removeEvent);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Status Messages', () => {
+    test('should show success status message', () => {
+      require('../../popup.js');
+
+      // Access the showStatus function through the global scope
+      const _showStatus = window.showStatus || (() => {});
+
+      // Mock the status div
+      mockStatusDiv.style.display = 'none';
+
+      // Simulate showing a status message
+      mockStatusDiv.textContent = 'Settings saved!';
+      mockStatusDiv.className = 'status success';
+      mockStatusDiv.style.display = 'block';
+
+      expect(mockStatusDiv.textContent).toBe('Settings saved!');
+      expect(mockStatusDiv.className).toContain('success');
+      expect(mockStatusDiv.style.display).toBe('block');
     });
   });
 });

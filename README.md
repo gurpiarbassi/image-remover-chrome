@@ -1,23 +1,38 @@
 # 🧹 Custom Image Remover – Chrome Extension
 
-This lightweight Chrome extension automatically removes images from web pages if their source URLs contain a user-specified domain.
+This lightweight Chrome extension automatically removes images from web pages based on website-specific image domain settings.
 
 ## 🚀 Features
 
-- 🔧 Specify one or more image host domains (e.g. `imagedelivery.net`)
+- 🌐 **Website-specific settings**: Configure different image domains for different websites
+- 🔧 Add multiple image host domains per website (e.g. `imagedelivery.net`, `ads.com`)
 - 🧼 Removes matching images **automatically on page load**
+- 🖱️ Manual trigger via popup button for immediate removal
 - 🧠 Remembers your preferences between sessions
-- 🖱️ Optional manual trigger via popup button
 - ✅ Privacy-first: No server, no tracking, no data collection
+- 🔄 **Backward compatible**: Existing users' settings are automatically migrated
 
 ---
 
 ## 🛠 How It Works
 
 1. Install the extension in Chrome
-2. Click the extension icon and enter a domain like `imagedelivery.net`
-3. Click **Save**
-4. Visit any website — images from that domain will be removed automatically
+2. Click the extension icon to open the popup
+3. Click **"Add Website"** to create a new website entry
+4. Enter the website domain (e.g., `example.com`)
+5. Add image domains you want to remove (e.g., `cdn.example.com`, `ads.com`)
+6. Click **"+"** to add more image domains or **"×"** to remove them
+7. Visit the configured website — images from those domains will be removed automatically
+
+---
+
+## 🎨 New UI Features
+
+- **Modern interface** with clean, intuitive design
+- **Dynamic website management**: Add/remove websites and image domains
+- **Real-time feedback**: Status messages for all actions
+- **Responsive design**: Works well on different screen sizes
+- **Visual indicators**: Clear buttons for adding/removing items
 
 ---
 
@@ -36,16 +51,28 @@ To test or install locally:
 ## 📁 Files
 
 - `manifest.json` – Extension config
-- `popup.html` / `popup.js` – UI to save domains or trigger removal manually
+- `popup.html` / `popup.js` – Modern UI for website and domain management
 - `background.js` – Initialization logic
 - `content.js` – Auto-removal logic on page load
 - `camera-x-icon-*.png` – Extension icon images
 
 ---
 
-## 💡 Example Use Case
+## 💡 Example Use Cases
 
-Block all CDN-hosted images from `imagedelivery.net`, `trackingpixels.com`, or any custom image host.
+- **News sites**: Remove ad images from `ads.example.com` while keeping content images
+- **Social media**: Block tracking pixels from `tracking.example.com`
+- **E-commerce**: Remove promotional images from `promo.example.com` but keep product images
+- **Multiple sites**: Different settings for different websites
+
+---
+
+## 🔄 Migration from Previous Version
+
+If you're upgrading from the previous version:
+- Your existing image domain settings will be automatically migrated
+- The old single-domain setting becomes a website entry with domain "all_websites"
+- You can now add more specific website configurations
 
 ---
 
