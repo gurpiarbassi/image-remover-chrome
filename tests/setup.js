@@ -3,7 +3,8 @@ global.chrome = {
   storage: {
     local: {
       get: jest.fn(),
-      set: jest.fn()
+      set: jest.fn(),
+      remove: jest.fn()
     }
   },
   tabs: {
@@ -15,8 +16,19 @@ global.chrome = {
   runtime: {
     onInstalled: {
       addListener: jest.fn()
+    },
+    onStartup: {
+      addListener: jest.fn()
     }
   }
+};
+
+// Force all console.log and console.error to print immediately, even for passing tests
+global.console.log = (...args) => {
+  process.stdout.write(args.join(' ') + '\n');
+};
+global.console.error = (...args) => {
+  process.stderr.write(args.join(' ') + '\n');
 };
 
 // Mock console methods to avoid noise in tests

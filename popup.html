@@ -3,26 +3,237 @@
 <head>
     <title>Image Remover</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
-            padding: 10px;
-            width: 200px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
+            width: 400px;
+            background: #f8f9fa;
+            color: #333;
         }
 
-        input {
-            width: 100%;
-            margin-bottom: 10px;
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        button {
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .website-section {
+            margin-bottom: 20px;
+            padding: 16px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #fafbfc;
+        }
+
+        .website-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .website-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .website-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .website-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .website-input.error:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .domains-list {
+            margin-top: 12px;
+        }
+
+        .domain-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            justify-content: flex-end;
+        }
+
+        .domain-input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-right: 8px;
+            text-align: right;
+        }
+
+        .domain-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .domain-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .domain-input.error:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+
+        .add-domain-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .add-domain-btn:hover {
+            background: #059669;
+        }
+
+        .remove-domain-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .remove-domain-btn:hover {
+            background: #4b5563;
+        }
+
+        .add-website-btn {
             width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .add-website-btn:hover {
+            background: #2563eb;
+        }
+
+        .remove-images-btn {
+            width: 100%;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .remove-images-btn:hover {
+            background: #d97706;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
-<label for="domain"></label><textarea id="domain" placeholder="Enter one domain per line..."></textarea>
-<button id="save">Save</button>
-<button id="remove">Remove Images</button>
-<script src="popup.js"></script>
+    <div class="container">
+        <h1>Image Remover</h1>
+        
+        <div id="websites-container">
+            <!-- Website sections will be dynamically added here -->
+        </div>
+
+        <button id="add-website" class="add-website-btn">+ Add Website</button>
+        <button id="remove-images" class="remove-images-btn">Remove Images on Current Page</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script src="popup.js"></script>
 </body>
 </html>

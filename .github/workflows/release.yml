@@ -10,19 +10,25 @@ permissions:
   packages: write
   pull-requests: read
 
+concurrency:
+  group: release-main
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Fetch all tags
         run: git fetch --tags --force
 
-      - name: Set up Node.js
+      - name: Set up Node.js and enable npm cache
         uses: actions/setup-node@v4
         with:
-          node-version: '21'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -30,8 +36,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Run tests
-        run: npm test
+      - name: Run integration tests
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1280x1024x24' npm run test:integration
 
       - name: Fetch PR number for commit
         id: pr
@@ -46,7 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LABELS=$(gh pr view ${{ steps.pr.outputs.pr_number }} --json labels --jq '.labels[].name' | tr '\n' ' ')
+          LABELS=$(gh pr view ${{ steps.pr.outputs.pr_number }} --json labels --jq '[.labels[].name] | join(" ")')
           echo "labels=$LABELS" >> $GITHUB_OUTPUT
 
       - name: Fetch latest tag and calculate next version
@@ -57,32 +63,26 @@ jobs:
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           LABELS="${{ steps.pr_labels.outputs.labels }}"
           if [[ "$LABELS" == *"version:major"* ]]; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
           elif [[ "$LABELS" == *"version:minor"* ]]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
+            MINOR=$((MINOR + 1)); PATCH=0
           else
-            # Default to patch bump if no label or version:patch
             PATCH=$((PATCH + 1))
           fi
 
-          # Ensure the new version is unique (no duplicate tags)
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           while git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; do
             PATCH=$((PATCH + 1))
             NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           done
 
+          echo "new_version=$NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update manifest.json and package.json version
         run: |
-          jq --arg v "${{ steps.next_version.outputs.new_version }}" '.version = $v' manifest.json > manifest.tmp.json
-          mv manifest.tmp.json manifest.json
-          jq --arg v "${{ steps.next_version.outputs.new_version }}" '.version = $v' package.json > package.tmp.json
-          mv package.tmp.json package.json
+          jq --arg v "${{ steps.next_version.outputs.new_version }}" '.version = $v' manifest.json > tmp && mv tmp manifest.json
+          jq --arg v "${{ steps.next_version.outputs.new_version }}" '.version = $v' package.json > tmp && mv tmp package.json
 
       - name: Create zip for release
         run: |
@@ -105,4 +105,4 @@ jobs:
           name: Release v${{ steps.next_version.outputs.new_version }}
           files: ${{ env.zip_name }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

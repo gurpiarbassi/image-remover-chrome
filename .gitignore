@@ -186,5 +186,9 @@ Thumbs.db
 # Chrome extension specific
 *.crx
 *.pem
-*.zip 
+*.zip
 
+# Playwright user data
+tests/integration/playwright-user-data/
+tests/integration/playwright-user-data-temp/
+test-results/
