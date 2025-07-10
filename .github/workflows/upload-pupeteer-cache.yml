@@ -1,20 +1,28 @@
-name: Upload Puppeteer Cache
+name: Seed Puppeteer Chromium Cache
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 👈 lets you run it manually
 
 jobs:
-  upload-cache:
+  seed:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Prompt for manual upload
-        run: |
-          echo "⏸️ Please upload 'puppeteer-cache.zip' using the UI below"
-          sleep 300  # Gives you 5 minutes to upload manually
+      - uses: actions/checkout@v4
 
-      - name: Upload ZIP to GitHub
-        uses: actions/upload-artifact@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          name: puppeteer-cache
-          path: puppeteer-cache.zip
+          node-version: '21'
+
+      - name: Install dependencies without downloading Chromium
+        run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
+
+      - name: Install Chromium manually
+        run: node node_modules/puppeteer/install.mjs
+
+      - name: Save Chromium cache
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-chromium-${{ runner.os }}
