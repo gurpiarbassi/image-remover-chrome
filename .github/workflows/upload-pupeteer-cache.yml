@@ -1,0 +1,12 @@
+# .github/workflows/upload-puppeteer-cache.yml
+on: workflow_dispatch
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Upload your puppeteer-cache.zip using the UI below"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: puppeteer-cache
+          path: puppeteer-cache.zip
