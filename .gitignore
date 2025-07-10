@@ -187,3 +187,7 @@ Thumbs.db
 *.crx
 *.pem
 *.zip 
+
+# Allow puppeteer zip file in .ci
+!/.ci/
+!/.ci/puppeteer-cache.zip
