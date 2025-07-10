@@ -1,12 +1,20 @@
-# .github/workflows/upload-puppeteer-cache.yml
-on: workflow_dispatch
+name: Upload Puppeteer Cache
+
+on:
+  workflow_dispatch:
 
 jobs:
-  upload:
+  upload-cache:
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "Upload your puppeteer-cache.zip using the UI below"
-      - uses: actions/upload-artifact@v4
+      - name: Prompt for manual upload
+        run: |
+          echo "⏸️ Please upload 'puppeteer-cache.zip' using the UI below"
+          sleep 300  # Gives you 5 minutes to upload manually
+
+      - name: Upload ZIP to GitHub
+        uses: actions/upload-artifact@v4
         with:
           name: puppeteer-cache
           path: puppeteer-cache.zip
