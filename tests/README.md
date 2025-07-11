@@ -84,7 +84,7 @@ expect(chrome.storage.local.get).toHaveBeenCalledWith(['imgDomain'], expect.any(
 
 ### Integration Tests
 
-Integration tests use Puppeteer to test the extension in a real browser environment. They verify that all components work together correctly.
+Integration tests use Playwright to test the extension in a real browser environment. They verify that all components work together correctly.
 
 #### Key Integration Test Features:
 - **Real Browser**: Tests run in actual Chrome browser
@@ -186,7 +186,7 @@ If tests fail due to Chrome API issues:
 2. Ensure mocks are reset in `beforeEach`
 3. Verify callback functions are called asynchronously
 
-### Puppeteer Issues
+### Playwright Issues
 If integration tests fail:
 1. Ensure Chrome is installed and accessible
 2. Check that extension path is correct
